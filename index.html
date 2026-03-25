@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<title>Laporan Bulanan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ── RESET & BASE ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #F7F6F2;
+    --surface:  #FFFFFF;
+    --border:   #E4E2DA;
+    --border2:  #C8C6BC;
+    --text:     #1A1916;
+    --text2:    #6B6860;
+    --text3:    #9E9C96;
+    --accent:   #1A1916;
+    --accent-bg:#F0EFE9;
+    --blue-bg:  #EBF3FD;
+    --blue-txt: #1A5FA8;
+    --green-bg: #EBF6EC;
+    --green-txt:#1C6B30;
+    --amber-bg: #FDF3E3;
+    --amber-txt:#8A5C0A;
+    --red-bg:   #FDEAEA;
+    --red-txt:  #9B2020;
+    --nav-h:    64px;
+    --radius:   12px;
+    --radius-sm:8px;
+    --shadow:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+  html { height: 100%; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── LAYOUT ── */
+  .app { max-width: 480px; margin: 0 auto; padding-bottom: calc(var(--nav-h) + 16px); }
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-title { font-size: 17px; font-weight: 600; color: var(--text); }
+  .topbar-sub   { font-size: 12px; color: var(--text3); margin-top: 1px; }
+
+  .section { display: none; padding: 16px 16px 0; }
+  .section.active { display: block; }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; cursor: pointer; border: none;
+    background: none; color: var(--text3);
+    font-size: 10px; font-family: var(--font);
+    font-weight: 500; letter-spacing: .2px;
+    transition: color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-item.active { color: var(--text); }
+  .nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+  .nav-icon svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text); position: absolute;
+    bottom: 10px; opacity: 0;
+    transition: opacity .15s;
+  }
+  .nav-item.active .nav-dot { opacity: 1; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+
+  /* ── FORM ── */
+  label { font-size: 12px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 5px; }
+  input[type=text], input[type=date], textarea, select {
+    width: 100%;
+    font-size: 15px;
+    font-family: var(--font);
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=text]:focus, input[type=date]:focus, textarea:focus, select:focus {
+    border-color: var(--border2);
+    box-shadow: 0 0 0 3px rgba(26,25,22,.06);
+  }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6860' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+  .field { margin-bottom: 13px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%; padding: 13px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600;
+    font-family: var(--font); cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    transition: background .12s, transform .08s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--text); color: var(--surface); border-color: transparent; }
+  .btn-primary:hover { background: #333; }
+  .btn-sm { padding: 7px 12px; font-size: 12px; width: auto; }
+  .btn-danger { color: var(--red-txt); border-color: #F5C0C0; background: var(--red-bg); }
+  .btn-row { display: flex; gap: 8px; }
+
+  /* ── CHIPS ── */
+  .chip-wrap { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip {
+    font-size: 12px; font-weight: 500;
+    padding: 6px 13px; border-radius: 20px;
+    border: 1px solid var(--border);
+    cursor: pointer; color: var(--text2);
+    background: var(--surface);
+    transition: all .12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chip.on { background: var(--text); color: var(--surface); border-color: transparent; }
+  .chip-input { font-size: 13px !important; padding: 6px 12px !important; width: auto !important; }
+
+  /* ── BADGE ── */
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: var(--green-bg); color: var(--green-txt); }
+
+  /* ── FILE ZONE ── */
+  .file-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 18px; text-align: center;
+    cursor: pointer; color: var(--text3);
+    font-size: 13px; margin-bottom: 10px;
+    transition: border-color .15s, background .15s;
+  }
+  .file-zone:hover { border-color: var(--text2); background: var(--bg); }
+  .file-icon { font-size: 22px; margin-bottom: 6px; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .tag { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
+  .tag-blue   { background: var(--blue-bg);  color: var(--blue-txt); }
+  .tag-amber  { background: var(--amber-bg); color: var(--amber-txt); }
+  .tag-green  { background: var(--green-bg); color: var(--green-txt); }
+
+  /* ── LOG ITEMS ── */
+  .log-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px; margin-bottom: 8px;
+  }
+  .log-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .log-kegiatan { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; line-height: 1.4; }
+  .log-meta { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .log-detail { font-size: 12px; color: var(--text2); margin-top: 6px; line-height: 1.5; }
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; padding: 0 2px; line-height: 1; }
+  .del-btn:hover { color: var(--red-txt); }
+
+  /* ── STATS ── */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; }
+  .stat-n { font-size: 24px; font-weight: 600; color: var(--text); }
+  .stat-l { font-size: 11px; color: var(--text3); margin-top: 2px; font-weight: 500; }
+
+  /* ── MONTH NAV ── */
+  .month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .month-nav button { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; font-size: 18px; color: var(--text); font-family: var(--font); }
+  .month-label { font-size: 15px; font-weight: 600; }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 2.5rem 1rem; color: var(--text3); font-size: 13px; line-height: 1.7; }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+  /* ── REF ITEMS ── */
+  .ref-item { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .ref-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .ref-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ── AI OUTPUT ── */
+  .ai-out {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 15px;
+    font-size: 13px; line-height: 1.85;
+    color: var(--text); white-space: pre-wrap;
+    min-height: 80px; max-height: 60vh; overflow-y: auto;
+  }
+
+  /* ── PROGRESS ── */
+  .progress { width: 100%; height: 3px; background: var(--bg); border-radius: 2px; overflow: hidden; margin: 8px 0; }
+  .pbar { height: 100%; background: var(--text); width: 0%; transition: width .4s ease; border-radius: 2px; }
+
+  /* ── ALERT ── */
+  .alert { padding: 11px 13px; border-radius: var(--radius-sm); font-size: 13px; line-height: 1.5; margin-bottom: 12px; font-weight: 500; }
+  .alert-info    { background: var(--blue-bg);  color: var(--blue-txt); }
+  .alert-success { background: var(--green-bg); color: var(--green-txt); }
+  .alert-warning { background: var(--amber-bg); color: var(--amber-txt); }
+  .alert-error   { background: var(--red-bg);   color: var(--red-txt); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: calc(var(--nav-h) + 14px);
+    left: 50%; transform: translateX(-50%) translateY(8px);
+    background: var(--text); color: var(--surface);
+    padding: 9px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    z-index: 200; white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── SYNC STATUS ── */
+  .sync-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text3); margin-top: 8px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+  .sync-dot.ok   { background: #2D8A3E; }
+  .sync-dot.err  { background: #C0392B; }
+  .sync-dot.spin { background: var(--amber-txt); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── SETTINGS ── */
+  .setting-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--border); gap: 16px; }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 14px; font-weight: 500; color: var(--text); }
+  .setting-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .toggle { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--border2); border-radius: 13px; cursor: pointer;
+    transition: background .2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--text); }
+  .toggle-track::before {
+    content: ''; position: absolute;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: white; top: 3px; left: 3px;
+    transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  }
+  .toggle input:checked + .toggle-track::before { transform: translateX(18px); }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Laporan Bulanan</div>
+      <div class="topbar-sub">Logbook + Narasi AI</div>
+    </div>
+    <span class="badge" id="badge">0 entri</span>
+  </div>
+
+  <!-- ══ TAB: INPUT ══ -->
+  <div id="tab-input" class="section active">
+    <div style="height:4px;"></div>
+
+    <!-- Sync status -->
+    <div id="sync-status" class="sync-row" style="margin-bottom:12px; display:none;">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-text">Menghubungkan ke Google Sheets...</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Tambah entri logbook</div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Tanggal</label>
+          <input type="date" id="i-tgl" />
+        </div>
+        <div class="field">
+          <label>Periode</label>
+          <select id="i-per">
+            <option value="harian">Harian</option>
+            <option value="mingguan">Mingguan</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Kegiatan utama</label>
+        <input type="text" id="i-keg" placeholder="Apa yang dikerjakan hari ini?" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label>Detail & hasil</label>
+        <textarea id="i-det" placeholder="Progress, hambatan, hasil yang dicapai..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Kategori</label>
+        <div class="chip-wrap" id="chips">
+          <span class="chip on" onclick="tc(this)">Pengembangan</span>
+          <span class="chip"    onclick="tc(this)">Rapat</span>
+          <span class="chip"    onclick="tc(this)">Riset</span>
+          <span class="chip"    onclick="tc(this)">Dokumentasi</span>
+          <span class="chip"    onclick="tc(this)">Review</span>
+          <span class="chip"    onclick="tc(this)">Koordinasi</span>
+        </div>
+        <input type="text" id="i-chip-new" class="chip-input" placeholder="+ Kategori baru (Enter)"
+               onkeydown="addChip(event)" />
+      </div>
+
+      <div class="field">
+        <label>Lampiran file</label>
+        <div class="file-zone" onclick="document.getElementById('i-file').click()">
+          <div class="file-icon">📎</div>
+          Ketuk untuk lampirkan file<br>
+          <span style="font-size:11px;">File akan tersimpan ke Google Drive Anda</span>
+          <input type="file" id="i-file" style="display:none" multiple onchange="handleF(this)" />
+        </div>
+        <div id="f-list" class="tags"></div>
+      </div>
+
+      <button class="btn btn-primary" id="save-btn" onclick="saveE()">Simpan entri</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: RIWAYAT ══ -->
+  <div id="tab-riwayat" class="section">
+    <div style="height:4px;"></div>
+    <div class="month-nav">
+      <button onclick="pm()">‹</button>
+      <span class="month-label" id="mlbl">—</span>
+      <button onclick="nm()">›</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-n" id="s-total">0</div><div class="stat-l">Entri</div></div>
+      <div class="stat"><div class="stat-n" id="s-kat">0</div><div class="stat-l">Kategori</div></div>
+      <div class="stat"><div class="stat-n" id="s-file">0</div><div class="stat-l">File</div></div>
+    </div>
+    <div id="log-list"></div>
+    <div style="margin-bottom:16px;">
+      <button class="btn" onclick="exportCSV()" style="font-size:13px;">⬇ Export CSV bulan ini</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: REFERENSI ══ -->
+  <div id="tab-ref" class="section">
+    <div style="height:4px;"></div>
+    <div class="card">
+      <div class="card-title">Upload laporan referensi</div>
+      <div style="font-size:13px; color:var(--text2); margin-bottom:12px; line-height:1.6;">
+        Upload laporan lama Anda (PDF/DOCX) agar AI belajar gaya dan format penulisan Anda.
+      </div>
+      <div class="file-zone" onclick="document.getElementById('r-file').click()">
+        <div class="file-icon">📄</div>
+        Ketuk untuk upload PDF / DOCX
+        <input type="file" id="r-file" style="display:none" multiple accept=".pdf,.docx,.doc"
+               onchange="handleR(this)" />
+      </div>
+      <div id="r-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Instruksi gaya penulisan AI</div>
+      <div style="font-size:13px; color:var(--text2); margin-bottom:10px; line-height:1.6;">
+        Tuliskan petunjuk khusus agar AI menulis sesuai gaya dan kebutuhan Anda.
+      </div>
+      <div class="field">
+        <textarea id="style-txt" style="min-height:100px;"
+          placeholder="Contoh:&#10;- Gunakan bahasa formal&#10;- Awali dengan ringkasan eksekutif&#10;- Sertakan angka capaian jika ada&#10;- Struktur: Pendahuluan, Kegiatan, Hambatan, RTL"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveSty()">Simpan instruksi</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: GENERATE ══ -->
+  <div id="tab-gen" class="section">
+    <div style="height:4px;"></div>
+    <div class="card">
+      <div class="card-title">Generate laporan bulanan</div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Bulan</label>
+          <select id="g-bln"></select>
+        </div>
+        <div class="field">
+          <label>Tahun</label>
+          <select id="g-thn"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Nama pelapor</label>
+        <input type="text" id="g-nama" placeholder="Nama lengkap Anda" />
+      </div>
+      <div class="field">
+        <label>Jabatan / Unit kerja</label>
+        <input type="text" id="g-jbt" placeholder="Jabatan dan unit kerja" />
+      </div>
+      <div class="field">
+        <label>Catatan tambahan (opsional)</label>
+        <textarea id="g-cat" placeholder="Hal khusus bulan ini yang perlu dicantumkan..."
+                  style="min-height:60px;"></textarea>
+      </div>
+
+      <div id="g-info"></div>
+      <button class="btn btn-primary" onclick="generate()">⚡ Generate dengan AI</button>
+    </div>
+
+    <div id="res-card" style="display:none;" class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div class="card-title" style="margin:0;">Hasil laporan</div>
+        <button class="btn btn-sm" onclick="copyL()">Salin</button>
+      </div>
+      <div id="prog-wrap" style="display:none;">
+        <div style="font-size:12px; color:var(--text3); margin-bottom:2px;" id="prog-lbl">Memproses...</div>
+        <div class="progress"><div class="pbar" id="pbar"></div></div>
+      </div>
+      <div class="ai-out" id="ai-out">—</div>
+      <div style="height:12px;"></div>
+      <button class="btn btn-primary" onclick="shareL()">Bagikan / Simpan ↗</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: PENGATURAN ══ -->
+  <div id="tab-set" class="section">
+    <div style="height:4px;"></div>
+    <div class="card">
+      <div class="card-title">Koneksi Google</div>
+
+      <div class="field">
+        <label>URL Google Apps Script</label>
+        <input type="text" id="gas-url"
+          placeholder="https://script.google.com/macros/s/.../exec" />
+        <div style="font-size:11px; color:var(--text3); margin-top:5px;">
+          Dapatkan URL ini dari Google Apps Script Anda. Lihat file PANDUAN.md.
+        </div>
+      </div>
+      <div class="field">
+        <label>Anthropic API Key</label>
+        <input type="password" id="api-key" placeholder="sk-ant-..." />
+        <div style="font-size:11px; color:var(--text3); margin-top:5px;">
+          Tersimpan hanya di perangkat ini (localStorage). Tidak dikirim ke server lain.
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveSettings()">Simpan pengaturan</button>
+      <div style="height:8px;"></div>
+      <button class="btn" onclick="testConnection()" style="font-size:13px;">🔌 Test koneksi Google Sheets</button>
+      <div id="conn-result" style="margin-top:10px; display:none;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Profil default</div>
+      <div class="field">
+        <label>Nama pelapor</label>
+        <input type="text" id="set-nama" placeholder="Nama lengkap Anda" />
+      </div>
+      <div class="field">
+        <label>Jabatan / Unit kerja</label>
+        <input type="text" id="set-jbt" placeholder="Jabatan dan unit kerja" />
+      </div>
+      <button class="btn btn-primary" onclick="saveProfile()">Simpan profil</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Data lokal</div>
+      <div style="font-size:13px; color:var(--text2); margin-bottom:12px; line-height:1.6;">
+        Data logbook tersimpan di browser ini (localStorage) sebagai backup. Data juga dikirim ke Google Sheets jika koneksi aktif.
+      </div>
+      <div style="font-size:13px; color:var(--text3);" id="local-info">—</div>
+      <div style="height:12px;"></div>
+      <button class="btn btn-danger btn-sm" onclick="clearLocal()">Hapus semua data lokal</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-item active" onclick="go('input',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+    Input
+  </button>
+  <button class="nav-item" onclick="go('riwayat',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+    Riwayat
+  </button>
+  <button class="nav-item" onclick="go('ref',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+    Referensi
+  </button>
+  <button class="nav-item" onclick="go('gen',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+    Generate
+  </button>
+  <button class="nav-item" onclick="go('set',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+    Setelan
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── STATE ── */
+const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+let entries    = JSON.parse(localStorage.getItem('lb_e') || '[]');
+let refs       = JSON.parse(localStorage.getItem('lb_r') || '[]');
+let styleNotes = localStorage.getItem('lb_s') || '';
+let gasUrl     = localStorage.getItem('lb_gas') || '';
+let apiKey     = localStorage.getItem('lb_key') || '';
+let profile    = JSON.parse(localStorage.getItem('lb_profile') || '{}');
+let vM = new Date().getMonth(), vY = new Date().getFullYear();
+let aFiles = [];
+
+/* ── HELPERS ── */
+function save() { localStorage.setItem('lb_e', JSON.stringify(entries)); upBadge(); }
+function upBadge() {
+  const n = new Date();
+  const c = entries.filter(e => { const d = new Date(e.t); return d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear(); }).length;
+  document.getElementById('badge').textContent = c + ' entri';
+}
+function toast(msg, dur=2200) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+function fmtD(s) { const d = new Date(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+
+/* ── NAV ── */
+function go(tab, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'riwayat') renderH();
+  if (tab === 'gen')     initGen();
+  if (tab === 'ref')     { document.getElementById('style-txt').value = styleNotes; renderRefs(); }
+  if (tab === 'set')     loadSettings();
+}
+
+/* ── CHIPS ── */
+function tc(el) { el.classList.toggle('on'); }
+function addChip(e) {
+  if (e.key !== 'Enter') return;
+  const v = e.target.value.trim(); if (!v) return;
+  const c = document.createElement('span');
+  c.className = 'chip on'; c.textContent = v;
+  c.onclick = function() { this.classList.toggle('on'); };
+  document.getElementById('chips').insertBefore(c, e.target.parentNode.querySelector('.chip-input'));
+  e.target.value = '';
+}
+function selChips() { return Array.from(document.querySelectorAll('#chips .chip.on')).map(c => c.textContent); }
+
+/* ── FILES ── */
+function handleF(inp) {
+  aFiles = Array.from(inp.files);
+  document.getElementById('f-list').innerHTML = aFiles.map(f => `<span class="tag tag-amber">📎 ${f.name}</span>`).join('');
+}
+
+/* ── SAVE ENTRY ── */
+async function saveE() {
+  const t = document.getElementById('i-tgl').value;
+  const k = document.getElementById('i-keg').value.trim();
+  if (!t || !k) { toast('⚠️ Tanggal & kegiatan wajib diisi!'); return; }
+
+  const btn = document.getElementById('save-btn');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+
+  const entry = {
+    id: Date.now(), t, per: document.getElementById('i-per').value,
+    k, d: document.getElementById('i-det').value.trim(),
+    kat: selChips(), f: aFiles.map(x => x.name),
+    ts: new Date().toISOString()
+  };
+
+  entries.unshift(entry); save();
+
+  // Sync ke Google Sheets
+  if (gasUrl) {
+    setSyncStatus('spin', 'Menyimpan ke Google Sheets...');
+    document.getElementById('sync-status').style.display = 'flex';
+    try {
+      await syncToSheets(entry, aFiles);
+      setSyncStatus('ok', 'Tersimpan di Google Sheets ✓');
+      setTimeout(() => document.getElementById('sync-status').style.display = 'none', 3000);
+    } catch(err) {
+      setSyncStatus('err', 'Gagal sync: ' + err.message);
+    }
+  }
+
+  // Reset form
+  document.getElementById('i-keg').value = '';
+  document.getElementById('i-det').value = '';
+  document.getElementById('f-list').innerHTML = '';
+  aFiles = [];
+  btn.textContent = 'Simpan entri'; btn.disabled = false;
+  toast('✓ Entri tersimpan!');
+}
+
+function setSyncStatus(state, msg) {
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot ' + state;
+  document.getElementById('sync-text').textContent = msg;
+}
+
+/* ── GOOGLE SHEETS SYNC ── */
+async function syncToSheets(entry, files) {
+  if (!gasUrl) throw new Error('URL Google Apps Script belum diisi di Setelan.');
+  const formData = new FormData();
+  formData.append('action', 'addEntry');
+  formData.append('entry', JSON.stringify(entry));
+  files.forEach(f => formData.append('files', f, f.name));
+  const res = await fetch(gasUrl, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json.status !== 'ok') throw new Error(json.message || 'Unknown error');
+  return json;
+}
+
+/* ── RIWAYAT ── */
+function renderH() {
+  document.getElementById('mlbl').textContent = MONTHS[vM] + ' ' + vY;
+  const fl = entries.filter(e => { const d = new Date(e.t); return d.getMonth()===vM && d.getFullYear()===vY; });
+  const cats  = new Set(fl.flatMap(e => e.kat));
+  const files = fl.reduce((a, e) => a + e.f.length, 0);
+  document.getElementById('s-total').textContent = fl.length;
+  document.getElementById('s-kat').textContent   = cats.size;
+  document.getElementById('s-file').textContent  = files;
+
+  const list = document.getElementById('log-list');
+  if (!fl.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">📭</div>Belum ada entri untuk bulan ini.<br>Tambahkan via tab Input.</div>`;
+    return;
+  }
+  list.innerHTML = fl.sort((a,b) => a.t.localeCompare(b.t)).map(e => `
+    <div class="log-item">
+      <div class="log-top">
+        <div class="log-kegiatan">${e.k}</div>
+        <button class="del-btn" onclick="delE(${e.id})" title="Hapus">×</button>
+      </div>
+      <div class="log-meta">${fmtD(e.t)} · ${e.per}</div>
+      ${e.d ? `<div class="log-detail">${e.d}</div>` : ''}
+      <div class="tags">
+        ${e.kat.map(k => `<span class="tag tag-blue">${k}</span>`).join('')}
+        ${e.f.map(f  => `<span class="tag tag-amber">📎 ${f}</span>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function delE(id) {
+  if (!confirm('Hapus entri ini?')) return;
+  entries = entries.filter(e => e.id !== id); save(); renderH();
+}
+function pm() { vM--; if (vM < 0) { vM = 11; vY--; } renderH(); }
+function nm() { vM++; if (vM > 11) { vM = 0; vY++; } renderH(); }
+
+function exportCSV() {
+  const fl = entries.filter(e => { const d = new Date(e.t); return d.getMonth()===vM && d.getFullYear()===vY; });
+  if (!fl.length) { toast('Tidak ada data bulan ini.'); return; }
+  const rows = [['Tanggal','Periode','Kegiatan','Detail','Kategori','File']];
+  fl.forEach(e => rows.push([e.t, e.per, e.k, e.d, e.kat.join(';'), e.f.join(';')]));
+  const csv = rows.map(r => r.map(c => '"' + String(c||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('\uFEFF' + csv);
+  a.download = 'logbook_' + MONTHS[vM] + vY + '.csv';
+  a.click();
+  toast('⬇ CSV diunduh');
+}
+
+/* ── REFERENSI ── */
+function handleR(inp) {
+  Array.from(inp.files).forEach(f => {
+    if (!refs.find(r => r.n === f.name)) refs.push({ n: f.name, d: new Date().toLocaleDateString('id-ID') });
+  });
+  localStorage.setItem('lb_r', JSON.stringify(refs)); renderRefs();
+  toast('✓ Referensi ditambahkan!');
+}
+function renderRefs() {
+  const el = document.getElementById('r-list');
+  if (!refs.length) { el.innerHTML = '<div class="empty" style="padding:.75rem 0;">Belum ada referensi.</div>'; return; }
+  el.innerHTML = refs.map((r, i) => `
+    <div class="ref-item">
+      <div><div class="ref-name">📄 ${r.n}</div><div class="ref-sub">Ditambahkan ${r.d}</div></div>
+      <button class="btn btn-sm btn-danger" onclick="delR(${i})">Hapus</button>
+    </div>`).join('');
+}
+function delR(i) { refs.splice(i,1); localStorage.setItem('lb_r', JSON.stringify(refs)); renderRefs(); }
+function saveSty() { styleNotes = document.getElementById('style-txt').value; localStorage.setItem('lb_s', styleNotes); toast('✓ Instruksi tersimpan!'); }
+
+/* ── GENERATE ── */
+function initGen() {
+  const ms = document.getElementById('g-bln'), ys = document.getElementById('g-thn');
+  ms.innerHTML = MONTHS.map((m,i) => `<option value="${i}"${i===new Date().getMonth()?' selected':''}>${m}</option>`).join('');
+  ys.innerHTML = [2024,2025,2026].map(y => `<option${y===new Date().getFullYear()?' selected':''}>${y}</option>`).join('');
+  const m = new Date().getMonth(), y = new Date().getFullYear();
+  const cnt = entries.filter(e => { const d = new Date(e.t); return d.getMonth()===m && d.getFullYear()===y; }).length;
+  document.getElementById('g-nama').value = profile.nama || '';
+  document.getElementById('g-jbt').value  = profile.jbt  || '';
+  document.getElementById('g-info').innerHTML = cnt
+    ? `<div class="alert alert-info" style="margin-bottom:12px;">📋 ${cnt} entri ditemukan — siap di-generate.</div>`
+    : `<div class="alert alert-warning" style="margin-bottom:12px;">Belum ada entri untuk bulan ini.</div>`;
+}
+
+async function generate() {
+  const currentApiKey = document.getElementById('api-key') ? document.getElementById('api-key').value || apiKey : apiKey;
+  if (!currentApiKey) { toast('⚠️ API Key belum diisi di tab Setelan!'); return; }
+
+  const m = parseInt(document.getElementById('g-bln').value);
+  const y = parseInt(document.getElementById('g-thn').value);
+  const nama = document.getElementById('g-nama').value || 'Pelapor';
+  const jbt  = document.getElementById('g-jbt').value  || '';
+  const cat  = document.getElementById('g-cat').value  || '';
+
+  const fl = entries.filter(e => { const d = new Date(e.t); return d.getMonth()===m && d.getFullYear()===y; });
+  if (!fl.length) { toast('Tidak ada entri untuk periode ini.'); return; }
+
+  document.getElementById('res-card').style.display = 'block';
+  document.getElementById('prog-wrap').style.display = 'block';
+  document.getElementById('ai-out').textContent = '';
+  document.getElementById('pbar').style.width = '20%';
+  document.getElementById('prog-lbl').textContent = 'Menyusun data logbook...';
+
+  const logTxt = fl.sort((a,b) => a.t.localeCompare(b.t))
+    .map(e => `[${e.t}] ${e.k}${e.d ? ' — ' + e.d : ''}${e.kat.length ? ' ('+e.kat.join(', ')+')' : ''}`)
+    .join('\n');
+
+  const styInstr = styleNotes ? `\n\nInstruksi gaya penulisan:\n${styleNotes}` : '';
+  const refNote  = refs.length ? `\nGaya mengacu pada: ${refs.map(r => r.n).join(', ')}.` : '';
+
+  const prompt = `Kamu adalah asisten penyusun laporan kerja bulanan profesional dalam Bahasa Indonesia formal.
+
+Buatlah laporan bulanan berdasarkan logbook berikut:
+
+Pelapor: ${nama}${jbt ? '\nJabatan/Unit: ' + jbt : ''}
+Periode: ${MONTHS[m]} ${y}
+${cat ? 'Catatan tambahan: ' + cat : ''}${refNote}${styInstr}
+
+Data logbook:
+${logTxt}
+
+Format laporan:
+1. Judul laporan
+2. Identitas pelapor
+3. Pendahuluan (1-2 paragraf kontekstual)
+4. Rekapitulasi kegiatan per kategori (narasi mengalir, bukan bullet)
+5. Capaian dan progress utama bulan ini
+6. Hambatan dan tantangan (simpulkan dari konteks jika ada)
+7. Rencana tindak lanjut bulan depan
+8. Penutup
+
+Tulis dalam Bahasa Indonesia formal yang mengalir dan profesional. Jangan gunakan bullet point di bagian isi narasi.`;
+
+  document.getElementById('pbar').style.width = '50%';
+  document.getElementById('prog-lbl').textContent = 'AI sedang menulis narasi...';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': currentApiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const data = await res.json();
+    document.getElementById('pbar').style.width = '100%';
+    document.getElementById('prog-lbl').textContent = 'Selesai!';
+    setTimeout(() => document.getElementById('prog-wrap').style.display = 'none', 800);
+    const txt = data.content?.map(c => c.text || '').join('') || 'Gagal generate laporan.';
+    document.getElementById('ai-out').textContent = txt;
+    toast('✓ Laporan berhasil di-generate!');
+  } catch(err) {
+    document.getElementById('ai-out').textContent = 'Error: ' + err.message + '\n\nPastikan API Key sudah benar di tab Setelan.';
+    document.getElementById('prog-wrap').style.display = 'none';
+  }
+}
+
+function copyL() {
+  navigator.clipboard.writeText(document.getElementById('ai-out').textContent).then(() => toast('✓ Tersalin!'));
+}
+function shareL() {
+  const txt = document.getElementById('ai-out').textContent;
+  if (navigator.share) {
+    navigator.share({ title: 'Laporan Bulanan', text: txt }).catch(() => {});
+  } else {
+    copyL();
+  }
+}
+
+/* ── SETTINGS ── */
+function loadSettings() {
+  document.getElementById('gas-url').value  = gasUrl;
+  document.getElementById('api-key').value  = apiKey;
+  document.getElementById('set-nama').value = profile.nama || '';
+  document.getElementById('set-jbt').value  = profile.jbt  || '';
+  document.getElementById('local-info').textContent = `${entries.length} entri tersimpan lokal`;
+}
+function saveSettings() {
+  gasUrl = document.getElementById('gas-url').value.trim();
+  apiKey = document.getElementById('api-key').value.trim();
+  localStorage.setItem('lb_gas', gasUrl);
+  localStorage.setItem('lb_key', apiKey);
+  toast('✓ Pengaturan tersimpan!');
+}
+function saveProfile() {
+  profile = { nama: document.getElementById('set-nama').value, jbt: document.getElementById('set-jbt').value };
+  localStorage.setItem('lb_profile', JSON.stringify(profile));
+  toast('✓ Profil tersimpan!');
+}
+async function testConnection() {
+  const url = document.getElementById('gas-url').value.trim();
+  if (!url) { toast('Isi URL Google Apps Script dulu.'); return; }
+  const el = document.getElementById('conn-result');
+  el.style.display = 'block';
+  el.innerHTML = '<div class="alert alert-warning">Menguji koneksi...</div>';
+  try {
+    const res = await fetch(url + '?action=ping');
+    const json = await res.json();
+    if (json.status === 'ok') {
+      el.innerHTML = '<div class="alert alert-success">✓ Koneksi berhasil! Google Sheets terhubung.</div>';
+    } else {
+      el.innerHTML = '<div class="alert alert-error">⚠ Terhubung tapi ada masalah: ' + (json.message||'Unknown') + '</div>';
+    }
+  } catch(err) {
+    el.innerHTML = '<div class="alert alert-error">✗ Gagal terhubung: ' + err.message + '</div>';
+  }
+}
+function clearLocal() {
+  if (!confirm('Hapus semua data logbook di browser ini? Data di Google Sheets tidak terpengaruh.')) return;
+  localStorage.removeItem('lb_e'); entries = []; save();
+  toast('Data lokal dihapus.'); loadSettings();
+}
+
+/* ── INIT ── */
+document.getElementById('i-tgl').value = new Date().toISOString().split('T')[0];
+upBadge();
+</script>
+</body>
+</html>
