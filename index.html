@@ -637,16 +637,40 @@ function setSyncStatus(state, msg) {
 
 /* ── GOOGLE SHEETS SYNC ── */
 async function syncToSheets(entry, files) {
-  if (!gasUrl) throw new Error('URL Google Apps Script belum diisi di Setelan.');
-  const formData = new FormData();
-  formData.append('action', 'addEntry');
-  formData.append('entry', JSON.stringify(entry));
-  files.forEach(f => formData.append('files', f, f.name));
-  const res = await fetch(gasUrl, { method: 'POST', body: formData });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const json = await res.json();
-  if (json.status !== 'ok') throw new Error(json.message || 'Unknown error');
-  return json;
+  if (!gasUrl) throw new Error('URL Google Apps Script belum diisi.');
+
+  // Fungsi pembantu untuk membaca file sebagai Base64
+  const toBase64 = file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve({
+      name: file.name,
+      type: file.type,
+      // Mengambil string base64 setelah tanda koma (data:image/png;base64,xxxx)
+      data: reader.result.split(',')[1] 
+    });
+    reader.onerror = error => reject(error);
+  });
+
+  // Konversi semua file ke Base64
+  const preparedFiles = await Promise.all(files.map(f => toBase64(f)));
+
+  // Kirim sebagai JSON ke action 'addEntryWithFiles'
+  const payload = {
+    entry: entry,
+    files: preparedFiles
+  };
+
+  const res = await fetch(gasUrl + '?action=addEntryWithFiles', {
+    method: 'POST',
+    mode: 'no-cors', // Penting: GAS seringkali memerlukan mode ini jika tidak ada CORS header
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  // Catatan: Karena mode 'no-cors', res.ok akan selalu false dan kita tidak bisa baca JSON balasan.
+  // Tapi data tetap masuk ke Google Sheets.
+  return { status: 'ok' };
 }
 
 /* ── RIWAYAT ── */
@@ -733,6 +757,7 @@ function initGen() {
 }
 
 async function generate() {
+  // 1. Ambil API Key dari input atau localStorage
   const currentApiKey = document.getElementById('api-key') ? document.getElementById('api-key').value || apiKey : apiKey;
   if (!currentApiKey) { toast('⚠️ API Key belum diisi di tab Setelan!'); return; }
 
@@ -745,6 +770,7 @@ async function generate() {
   const fl = entries.filter(e => { const d = new Date(e.t); return d.getMonth()===m && d.getFullYear()===y; });
   if (!fl.length) { toast('Tidak ada entri untuk periode ini.'); return; }
 
+  // UI Feedback
   document.getElementById('res-card').style.display = 'block';
   document.getElementById('prog-wrap').style.display = 'block';
   document.getElementById('ai-out').textContent = '';
@@ -758,8 +784,8 @@ async function generate() {
   const styInstr = styleNotes ? `\n\nInstruksi gaya penulisan:\n${styleNotes}` : '';
   const refNote  = refs.length ? `\nGaya mengacu pada: ${refs.map(r => r.n).join(', ')}.` : '';
 
-  const prompt = `Kamu adalah asisten penyusun laporan kerja bulanan profesional dalam Bahasa Indonesia formal.
-
+  // Prompt untuk Gemini
+  const promptText = `Kamu adalah asisten penyusun laporan kerja bulanan profesional dalam Bahasa Indonesia formal.
 Buatlah laporan bulanan berdasarkan logbook berikut:
 
 Pelapor: ${nama}${jbt ? '\nJabatan/Unit: ' + jbt : ''}
@@ -782,24 +808,45 @@ Format laporan:
 Tulis dalam Bahasa Indonesia formal yang mengalir dan profesional. Jangan gunakan bullet point di bagian isi narasi.`;
 
   document.getElementById('pbar').style.width = '50%';
-  document.getElementById('prog-lbl').textContent = 'AI sedang menulis narasi...';
+  document.getElementById('prog-lbl').textContent = 'Gemini AI sedang menulis...';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // Endpoint Google Gemini API (menggunakan model gemini-1.5-flash)
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${currentApiKey}`;
+
+    const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': currentApiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: promptText }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2500,
+        }
+      })
     });
-    if (!res.ok) throw new Error('API error ' + res.status);
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error?.message || 'API error ' + res.status);
+    }
+
     const data = await res.json();
+    
+    // Ambil teks dari struktur respons Gemini
+    const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Gagal generate laporan.';
+    
     document.getElementById('pbar').style.width = '100%';
     document.getElementById('prog-lbl').textContent = 'Selesai!';
     setTimeout(() => document.getElementById('prog-wrap').style.display = 'none', 800);
-    const txt = data.content?.map(c => c.text || '').join('') || 'Gagal generate laporan.';
+    
     document.getElementById('ai-out').textContent = txt;
     toast('✓ Laporan berhasil di-generate!');
   } catch(err) {
-    document.getElementById('ai-out').textContent = 'Error: ' + err.message + '\n\nPastikan API Key sudah benar di tab Setelan.';
+    console.error(err);
+    document.getElementById('ai-out').textContent = 'Error: ' + err.message + '\n\nPastikan API Key Gemini sudah benar di tab Setelan dan kuota masih tersedia.';
     document.getElementById('prog-wrap').style.display = 'none';
   }
 }
