@@ -805,6 +805,7 @@ Buatkan narasi laporan kegiatan dengan ketentuan berikut:
   - Hindari bahasa percakapan, opini pribadi, atau gaya santai.
   - Gunakan istilah yang bernuansa akademik dan profesional (misalnya: “mendukung proses pembelajaran”, “pengembangan sistem pembelajaran”, “penyajian informasi yang komunikatif”).
   - Jangan menggunakan kata “telaah”, tetapi tetap hadirkan isi reflektif dalam paragraf kedua.
+  - Gunakan "Penulis" sebagai kata ganti orang pertama.
 3. Pendekatan penulisan:
   - Jangan hanya mendeskripsikan kegiatan, tetapi “angkat” kegiatan tersebut agar terlihat relevan dengan fungsi PTP.
   - Jika kegiatan bersifat administratif atau umum (misalnya notulen, rapat, atau administrasi), tetap kaitkan secara logis dengan: pengelolaan pembelajaran, dukungan sistem pembelajaran, atau pengelolaan pengetahuan (knowledge management).
@@ -818,13 +819,15 @@ Buatkan narasi laporan kegiatan dengan ketentuan berikut:
   - Posisi penulis harus terlihat sebagai: analis pembelajaran, perancang pembelajaran, pengembang media/sistem, bukan sekadar pelaksana teknis.
 6. Output:
   - Tulis dalam bentuk poin kegiatan sesuai yang ada di logbook
-  - Setiap poin memiliki judul kegiatan yang sudah diperbaiki menjadi lebih formal dan representatif.`;
+  - Setiap poin memiliki judul kegiatan yang sudah diperbaiki menjadi lebih formal dan representatif.
+
+Pastikan narasi mencerminkan bahwa kegiatan yang dilakukan merupakan bagian dari siklus pengembangan pembelajaran (analisis, desain, pengembangan, implementasi, evaluasi), meskipun tidak disebutkan secara eksplisit.`;
 
   document.getElementById('pbar').style.width = '50%';
   document.getElementById('prog-lbl').textContent = 'Gemini AI sedang menulis...';
 
   try {
-    // Endpoint Google Gemini API (menggunakan model gemini-1.5-flash)
+    // Endpoint Google Gemini API (menggunakan model gemini-2.5-flash)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentApiKey}`;
 
     const res = await fetch(url, {
