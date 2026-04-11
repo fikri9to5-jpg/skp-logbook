@@ -785,7 +785,7 @@ async function generate() {
   const refNote  = refs.length ? `\nGaya mengacu pada: ${refs.map(r => r.n).join(', ')}.` : '';
 
   // Prompt untuk Gemini
-  const promptText = `Kamu adalah asisten penyusun laporan kerja bulanan profesional dalam Bahasa Indonesia formal.
+  const promptText = `Kamu adalah asisten penyusun laporan kerja bulanan Pegawai Negeri Sipil dalam Bahasa Indonesia formal.
 Buatlah laporan bulanan berdasarkan logbook berikut:
 
 Pelapor: ${nama}${jbt ? '\nJabatan/Unit: ' + jbt : ''}
@@ -795,17 +795,30 @@ ${cat ? 'Catatan tambahan: ' + cat : ''}${refNote}${styInstr}
 Data logbook:
 ${logTxt}
 
-Format laporan:
-1. Judul laporan
-2. Identitas pelapor
-3. Pendahuluan (1-2 paragraf kontekstual)
-4. Rekapitulasi kegiatan per kategori (narasi mengalir, bukan bullet)
-5. Capaian dan progress utama bulan ini
-6. Hambatan dan tantangan (simpulkan dari konteks jika ada)
-7. Rencana tindak lanjut bulan depan
-8. Penutup
+Buatkan narasi laporan kegiatan dengan ketentuan berikut:
 
-Tulis dalam Bahasa Indonesia formal yang mengalir dan profesional. Jangan gunakan bullet point di bagian isi narasi.`;
+1. Struktur wajib setiap kegiatan terdiri dari 2 paragraf:
+  - Paragraf pertama: uraian kegiatan secara deskriptif (apa yang dilakukan, konteks kegiatan, dan peran yang dijalankan).
+  - Paragraf kedua: refleksi profesional yang mengaitkan kegiatan tersebut dengan fungsi Pengembang Teknologi Pembelajaran (PTP), seperti analisis pembelajaran, desain pembelajaran, pengembangan media, atau sistem pembelajaran.
+2. Gaya bahasa:
+  - Gunakan bahasa formal khas laporan ASN.
+  - Hindari bahasa percakapan, opini pribadi, atau gaya santai.
+  - Gunakan istilah yang bernuansa akademik dan profesional (misalnya: “mendukung proses pembelajaran”, “pengembangan sistem pembelajaran”, “penyajian informasi yang komunikatif”).
+  - Jangan menggunakan kata “telaah”, tetapi tetap hadirkan isi reflektif dalam paragraf kedua.
+3. Pendekatan penulisan:
+  - Jangan hanya mendeskripsikan kegiatan, tetapi “angkat” kegiatan tersebut agar terlihat relevan dengan fungsi PTP.
+  - Jika kegiatan bersifat administratif atau umum (misalnya notulen, rapat, atau administrasi), tetap kaitkan secara logis dengan: pengelolaan pembelajaran, dukungan sistem pembelajaran, atau pengelolaan pengetahuan (knowledge management).
+  - Hindari kesan “mengada-ada”, tetapi gunakan pendekatan “menarik benang merah” dari kegiatan ke fungsi PTP.
+4. Kualitas narasi:
+  - Setiap paragraf minimal terdiri dari 3–4 kalimat.
+  - Hindari pengulangan kalimat yang sama antar kegiatan.
+  - Gunakan variasi diksi, tetapi tetap konsisten secara formal.
+  - Pastikan setiap kegiatan terasa “punya makna”, bukan sekadar aktivitas teknis.
+5. Fokus peran:
+  - Posisi penulis harus terlihat sebagai: analis pembelajaran, perancang pembelajaran, pengembang media/sistem, bukan sekadar pelaksana teknis.
+6. Output:
+  - Tulis dalam bentuk poin kegiatan sesuai yang ada di logbook
+  - Setiap poin memiliki judul kegiatan yang sudah diperbaiki menjadi lebih formal dan representatif.`;
 
   document.getElementById('pbar').style.width = '50%';
   document.getElementById('prog-lbl').textContent = 'Gemini AI sedang menulis...';
