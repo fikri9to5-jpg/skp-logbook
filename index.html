@@ -918,10 +918,43 @@ function clearLocal() {
   localStorage.removeItem('lb_e'); entries = []; save();
   toast('Data lokal dihapus.'); loadSettings();
 }
+/* ── INIT APP: load dari Sheets saat pertama buka ── */
+async function initApp() {
+  if (!gasUrl) return; // belum setup, pakai localStorage saja
+
+  try {
+    const now = new Date();
+    const m = now.getMonth();
+    const y = now.getFullYear();
+
+    // Tampilkan indikator loading
+    document.getElementById('badge').textContent = 'Memuat...';
+
+    const res = await fetch(`${gasUrl}?action=getEntries&month=${m}&year=${y}`);
+    const json = await res.json();
+
+    if (json.status === 'ok' && json.data.length > 0) {
+      // Gabungkan data Sheets dengan localStorage, hindari duplikat berdasarkan ID
+      const localIds = new Set(entries.map(e => String(e.id)));
+      const newFromSheets = json.data.filter(e => !localIds.has(String(e.id)));
+      
+      if (newFromSheets.length > 0) {
+        entries = [...newFromSheets, ...entries];
+        save(); // update localStorage
+      }
+    }
+  } catch(err) {
+    // Gagal fetch Sheets — tetap pakai localStorage, tidak perlu alert
+    console.log('Gagal sync dari Sheets:', err.message);
+  }
+
+  upBadge();
+}
 
 /* ── INIT ── */
 document.getElementById('i-tgl').value = new Date().toISOString().split('T')[0];
 upBadge();
+initApp();
 </script>
 </body>
 </html>
