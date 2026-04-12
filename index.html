@@ -585,7 +585,17 @@ function selChips() { return Array.from(document.querySelectorAll('#chips .chip.
 
 /* ── FILES ── */
 function handleF(inp) {
-  aFiles = Array.from(inp.files);
+  const kegiatan = document.getElementById('i-keg').value.trim();
+  
+  aFiles = Array.from(inp.files).map((f, i) => {
+    if (!kegiatan) return f; // kalau judul belum diisi, biarkan nama asli
+    const ext = f.name.split('.').pop();
+    const namaBaru = kegiatan.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_').slice(0, 50)
+      + (inp.files.length > 1 ? `_${i + 1}` : '')
+      + '.' + ext;
+    return new File([f], namaBaru, { type: f.type });
+  });
+
   document.getElementById('f-list').innerHTML = aFiles.map(f => `<span class="tag tag-amber">📎 ${f.name}</span>`).join('');
 }
 
