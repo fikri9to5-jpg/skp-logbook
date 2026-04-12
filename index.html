@@ -450,6 +450,10 @@
       <div class="ai-out" id="ai-out">—</div>
       <div style="height:12px;"></div>
       <button class="btn btn-primary" onclick="shareL()">Bagikan / Simpan ↗</button>
+      <div id="doc-link-wrap" style="display:none; margin-top:10px;">
+      <a id="doc-link" href="#" target="_blank" class="btn btn-primary"cstyle="display:block; text-align:center; text-decoration:none;">Buka Dokumen Google Docs ↗</a>
+      <div style="font-size:11px; color:var(--text3); margin-top:6px; text-align:center;">Tambahkan lampiran secara manual di bagian akhir dokumen</div>
+      </div>
     </div>
   </div>
 
@@ -767,114 +771,212 @@ function initGen() {
 }
 
 async function generate() {
-  // 1. Ambil API Key dari input atau localStorage
-  const currentApiKey = document.getElementById('api-key') ? document.getElementById('api-key').value || apiKey : apiKey;
+  const currentApiKey = apiKey || document.getElementById('api-key').value;
   if (!currentApiKey) { toast('⚠️ API Key belum diisi di tab Setelan!'); return; }
+  if (!gasUrl) { toast('⚠️ URL Google Apps Script belum diisi di tab Setelan!'); return; }
 
-  const m = parseInt(document.getElementById('g-bln').value);
-  const y = parseInt(document.getElementById('g-thn').value);
+  const m    = parseInt(document.getElementById('g-bln').value);
+  const y    = parseInt(document.getElementById('g-thn').value);
   const nama = document.getElementById('g-nama').value || 'Pelapor';
   const jbt  = document.getElementById('g-jbt').value  || '';
   const cat  = document.getElementById('g-cat').value  || '';
 
-  const fl = entries.filter(e => { const d = new Date(e.t); return d.getMonth()===m && d.getFullYear()===y; });
+  const fl = entries.filter(e => {
+    const d = new Date(e.t);
+    return d.getMonth() === m && d.getFullYear() === y;
+  });
   if (!fl.length) { toast('Tidak ada entri untuk periode ini.'); return; }
 
-  // UI Feedback
   document.getElementById('res-card').style.display = 'block';
   document.getElementById('prog-wrap').style.display = 'block';
   document.getElementById('ai-out').textContent = '';
-  document.getElementById('pbar').style.width = '20%';
+  document.getElementById('pbar').style.width = '10%';
   document.getElementById('prog-lbl').textContent = 'Menyusun data logbook...';
 
-  const logTxt = fl.sort((a,b) => a.t.localeCompare(b.t))
-    .map(e => `[${e.t}] ${e.k}${e.d ? ' — ' + e.d : ''}${e.kat.length ? ' ('+e.kat.join(', ')+')' : ''}`)
-    .join('\n');
+  // Hitung tanggal akhir bulan
+  const tanggalAkhir = new Date(y, m + 1, 0).getDate() + ' ' + MONTHS[m] + ' ' + y;
+  const bulanTahun   = MONTHS[m] + ' ' + y;
+
+  // Kelompokkan entri per minggu kalender (Senin sebagai awal minggu)
+  const perMinggu = kelompokkanPerMinggu(fl, m, y);
+
+  // Susun logTxt per minggu untuk prompt
+  const logTxt = Object.entries(perMinggu).map(([minggu, items]) => {
+    const kegList = items.map(e => `  - ${e.k}${e.d ? ' (' + e.d + ')' : ''}`).join('\n');
+    return `${minggu}:\n${kegList}`;
+  }).join('\n\n');
 
   const styInstr = styleNotes ? `\n\nInstruksi gaya penulisan:\n${styleNotes}` : '';
   const refNote  = refs.length ? `\nGaya mengacu pada: ${refs.map(r => r.n).join(', ')}.` : '';
 
-  // Prompt untuk Gemini
+  // ── PROMPT ───────────────────────────────────────────────────
   const promptText = `Kamu adalah asisten penyusun laporan kerja bulanan Pegawai Negeri Sipil dalam Bahasa Indonesia formal.
+
 Buatlah laporan bulanan berdasarkan logbook berikut:
 
 Pelapor: ${nama}${jbt ? '\nJabatan/Unit: ' + jbt : ''}
-Periode: ${MONTHS[m]} ${y}
+Periode: ${bulanTahun}
 ${cat ? 'Catatan tambahan: ' + cat : ''}${refNote}${styInstr}
 
-Data logbook:
+Data logbook (sudah dikelompokkan per minggu):
 ${logTxt}
 
+Output harus terdiri dari DUA bagian yang dipisahkan dengan penanda berikut:
+
+[TABEL]
+Minggu I ${MONTHS[m]}:
+- Judul kegiatan formal 1
+- Judul kegiatan formal 2
+Minggu II ${MONTHS[m]}:
+- Judul kegiatan formal 3
+(dst untuk setiap minggu yang ada di logbook)
+[/TABEL]
+
+[NARASI]
+(narasi lengkap per kegiatan seperti ketentuan di bawah)
+[/NARASI]
+
+Ketentuan bagian [TABEL]:
+- Tulis hanya minggu yang ada datanya di logbook
+- Judul kegiatan harus diperhalus menjadi formal dan representatif
+- Format minggu: "Minggu I ${MONTHS[m]}", "Minggu II ${MONTHS[m]}", dst
+
+Ketentuan bagian [NARASI]:
 Buatkan narasi laporan kegiatan dengan ketentuan berikut:
 
 1. Struktur wajib setiap kegiatan terdiri dari 2 paragraf:
-  - Paragraf pertama: uraian kegiatan secara deskriptif (apa yang dilakukan, konteks kegiatan, dan peran yang dijalankan).
-  - Paragraf kedua: refleksi profesional yang mengaitkan kegiatan tersebut dengan fungsi Pengembang Teknologi Pembelajaran (PTP), seperti analisis pembelajaran, desain pembelajaran, pengembangan media, atau sistem pembelajaran.
+   - Paragraf pertama: uraian kegiatan secara deskriptif (apa yang dilakukan, konteks kegiatan, dan peran yang dijalankan).
+   - Paragraf kedua: refleksi profesional yang mengaitkan kegiatan tersebut dengan fungsi Pengembang Teknologi Pembelajaran (PTP), seperti analisis pembelajaran, desain pembelajaran, pengembangan media, atau sistem pembelajaran.
+
 2. Gaya bahasa:
-  - Gunakan bahasa formal khas laporan ASN.
-  - Hindari bahasa percakapan, opini pribadi, atau gaya santai.
-  - Gunakan istilah yang bernuansa akademik dan profesional (misalnya: “mendukung proses pembelajaran”, “pengembangan sistem pembelajaran”, “penyajian informasi yang komunikatif”).
-  - Jangan menggunakan kata “telaah”, tetapi tetap hadirkan isi reflektif dalam paragraf kedua.
-  - Gunakan "Penulis" sebagai kata ganti orang pertama.
+   - Gunakan bahasa formal khas laporan ASN.
+   - Hindari bahasa percakapan, opini pribadi, atau gaya santai.
+   - Gunakan istilah yang bernuansa akademik dan profesional.
+   - Jangan menggunakan kata "telaah", tetapi tetap hadirkan isi reflektif dalam paragraf kedua.
+   - Gunakan "Penulis" sebagai kata ganti orang pertama.
+
 3. Pendekatan penulisan:
-  - Jangan hanya mendeskripsikan kegiatan, tetapi “angkat” kegiatan tersebut agar terlihat relevan dengan fungsi PTP.
-  - Jika kegiatan bersifat administratif atau umum (misalnya notulen, rapat, atau administrasi), tetap kaitkan secara logis dengan: pengelolaan pembelajaran, dukungan sistem pembelajaran, atau pengelolaan pengetahuan (knowledge management).
-  - Hindari kesan “mengada-ada”, tetapi gunakan pendekatan “menarik benang merah” dari kegiatan ke fungsi PTP.
+   - Jangan hanya mendeskripsikan kegiatan, tetapi "angkat" kegiatan tersebut agar terlihat relevan dengan fungsi PTP.
+   - Jika kegiatan bersifat administratif atau umum, tetap kaitkan secara logis dengan pengelolaan pembelajaran, dukungan sistem pembelajaran, atau knowledge management.
+   - Hindari kesan "mengada-ada", gunakan pendekatan "menarik benang merah" dari kegiatan ke fungsi PTP.
+
 4. Kualitas narasi:
-  - Setiap paragraf minimal terdiri dari 3–4 kalimat.
-  - Hindari pengulangan kalimat yang sama antar kegiatan.
-  - Gunakan variasi diksi, tetapi tetap konsisten secara formal.
-  - Pastikan setiap kegiatan terasa “punya makna”, bukan sekadar aktivitas teknis.
+   - Setiap paragraf minimal terdiri dari 3–4 kalimat.
+   - Hindari pengulangan kalimat yang sama antar kegiatan.
+   - Gunakan variasi diksi, tetapi tetap konsisten secara formal.
+
 5. Fokus peran:
-  - Posisi penulis harus terlihat sebagai: analis pembelajaran, perancang pembelajaran, pengembang media/sistem, bukan sekadar pelaksana teknis.
-6. Output:
-  - Tulis dalam bentuk poin kegiatan sesuai yang ada di logbook
-  - Setiap poin memiliki judul kegiatan yang sudah diperbaiki menjadi lebih formal dan representatif.
+   - Posisi penulis harus terlihat sebagai: analis pembelajaran, perancang pembelajaran, pengembang media/sistem, bukan sekadar pelaksana teknis.
 
-Pastikan narasi mencerminkan bahwa kegiatan yang dilakukan merupakan bagian dari siklus pengembangan pembelajaran (analisis, desain, pengembangan, implementasi, evaluasi), meskipun tidak disebutkan secara eksplisit.`;
+6. Format narasi:
+   - Tulis dalam bentuk poin kegiatan sesuai yang ada di logbook.
+   - Setiap poin memiliki judul kegiatan yang sudah diperbaiki menjadi lebih formal dan representatif.
 
-  document.getElementById('pbar').style.width = '50%';
-  document.getElementById('prog-lbl').textContent = 'Gemini AI sedang menulis...';
+Pastikan narasi mencerminkan bahwa kegiatan yang dilakukan merupakan bagian dari siklus pengembangan pembelajaran (analisis, desain, pengembangan, implementasi, evaluasi).`;
+
+  document.getElementById('pbar').style.width = '30%';
+  document.getElementById('prog-lbl').textContent = 'AI sedang menulis narasi dan tabel...';
 
   try {
-    // Endpoint Google Gemini API (menggunakan model gemini-2.5-flash)
+    // Panggil Gemini API
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentApiKey}`;
-
-    const res = await fetch(url, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    contents: [{
-      parts: [{ text: promptText }]
-    }]
-  })
-});
-
+    const res  = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+    });
     if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error?.message || 'API error ' + res.status);
+      const err = await res.json();
+      throw new Error(err.error?.message || 'API error ' + res.status);
     }
+    const data   = await res.json();
+    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!aiText) throw new Error('AI tidak menghasilkan teks.');
 
-    const data = await res.json();
-    
-    // Ambil teks dari struktur respons Gemini
-    const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Gagal generate laporan.';
-    
+    // Tampilkan preview narasi di layar
+    const narasiPreview = parseNarasiPreview(aiText);
+    document.getElementById('ai-out').textContent = narasiPreview;
+    document.getElementById('pbar').style.width = '60%';
+    document.getElementById('prog-lbl').textContent = 'Membuat dokumen Google Docs...';
+
+    // Kirim ke GAS untuk generate Docs
+    const gasRes = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'generateDoc',
+        entries: fl,
+        narasiRaw: aiText,
+        bulanTahun,
+        tanggalAkhir,
+        nama,
+        jabatan: jbt,
+        month: m,
+        year: y
+      })
+    });
+
+    const gasData = await gasRes.json().catch(() => ({}));
+
     document.getElementById('pbar').style.width = '100%';
     document.getElementById('prog-lbl').textContent = 'Selesai!';
     setTimeout(() => document.getElementById('prog-wrap').style.display = 'none', 800);
-    
-    document.getElementById('ai-out').textContent = txt;
-    toast('✓ Laporan berhasil di-generate!');
+
+    if (gasData.docUrl) {
+      // Tampilkan link dokumen
+      document.getElementById('doc-link-wrap').style.display = 'block';
+      document.getElementById('doc-link').href = gasData.docUrl;
+      toast('✓ Dokumen berhasil dibuat!', 3000);
+    } else {
+      toast('✓ Narasi selesai. Dokumen Docs gagal dibuat — cek koneksi GAS.', 4000);
+    }
+
   } catch(err) {
     console.error(err);
-    document.getElementById('ai-out').textContent = 'Error: ' + err.message + '\n\nPastikan API Key Gemini sudah benar di tab Setelan dan kuota masih tersedia.';
+    document.getElementById('ai-out').textContent = 'Error: ' + err.message;
     document.getElementById('prog-wrap').style.display = 'none';
   }
 }
+function kelompokkanPerMinggu(entries, month, year) {
+  const result = {};
 
+  entries.forEach(e => {
+    const tgl    = new Date(e.t);
+    const minggu = getMingguKalender(tgl, month, year);
+    if (!result[minggu]) result[minggu] = [];
+    result[minggu].push(e);
+  });
+
+  return result;
+}
+
+function getMingguKalender(tgl, month, year) {
+  // Cari hari Senin pertama di bulan ini
+  const firstDay = new Date(year, month, 1);
+  // Geser ke Senin (0=Sun,1=Mon,...,6=Sat)
+  const dayOfWeek = firstDay.getDay();
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const firstMonday  = new Date(firstDay);
+  firstMonday.setDate(firstDay.getDate() + diffToMonday);
+
+  // Hitung selisih minggu
+  const msPerWeek  = 7 * 24 * 60 * 60 * 1000;
+  const weekNumber = Math.floor((tgl - firstMonday) / msPerWeek) + 1;
+
+  const angkaRomawi = ['I', 'II', 'III', 'IV', 'V'];
+  const idx = Math.max(0, Math.min(weekNumber - 1, 4));
+  return 'Minggu ' + angkaRomawi[idx] + ' ' + MONTHS[month];
+}
+
+function parseNarasiPreview(rawText) {
+  // Tampilkan hanya bagian [NARASI] di layar
+  const match = rawText.match(/\[NARASI\]([\s\S]*?)\[\/NARASI\]/);
+  if (match) return match[1].trim();
+  return rawText.trim();
+}
 function copyL() {
-  navigator.clipboard.writeText(document.getElementById('ai-out').textContent).then(() => toast('✓ Tersalin!'));
+  navigator.clipboard.writeText(document.getElementById('ai-out').textContent)
+    .then(() => toast('✓ Narasi tersalin!'));
 }
 function shareL() {
   const txt = document.getElementById('ai-out').textContent;
