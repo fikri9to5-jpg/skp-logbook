@@ -92,7 +92,8 @@
     z-index: 1;
   }
   .topbar {
-    background: var(--surface);
+    background: linear-gradient(135deg, #204088 0%, #ddd6ff 50%, #cfe4ff 100%);
+    opacity: 0.95;
     border: 1px solid var(--border);
     backdrop-filter: blur(22px);
     -webkit-backdrop-filter: blur(22px);
@@ -404,7 +405,7 @@
     .topbar {
       top: 32px;
       background: linear-gradient(135deg, #204088 0%, #ddd6ff 50%, #cfe4ff 100%);
-      opacity: 0.8;
+      opacity: 0.95;
       border-color: rgba(255, 255, 255, 0.34);
       max-width: var(--content-w);
       margin: 0 auto 28px;
@@ -415,8 +416,8 @@
     .topbar-title {
       font-size: 30px;
       line-height: 1.08;
-      color: #111a2b;
-      text-shadow: none;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgb(40 37 173 / 29%), 0 0 20px #07111f;
     }
     .topbar-sub {
       font-size: 12px;
