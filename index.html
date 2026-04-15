@@ -717,8 +717,8 @@ function renderH() {
       <div class="log-meta">${fmtD(e.t)} · ${e.per}</div>
       ${e.d ? `<div class="log-detail">${e.d}</div>` : ''}
       <div class="tags">
-        ${e.kat.map(k => `<span class="tag tag-blue">${k}</span>`).join('')}
-        ${e.f.map(f  => `<span class="tag tag-amber">📎 ${f}</span>`).join('')}
+        ${(e.kat || []).map(k => `<span class="tag tag-blue">${k}</span>`).join('')}
+        ${(e.f || []).map(f => `<span class="tag tag-amber">📎 ${f}</span>`).join('')}
       </div>
     </div>`).join('');
 }
