@@ -34,6 +34,7 @@ function doGet(e) {
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
+    Logger.log('Data diterima: ' + JSON.stringify(data).substring(0, 500));
     const action = e.parameter.action || data.action || '';
 
     if (action === 'addEntryWithFiles') {
@@ -141,10 +142,112 @@ function generateLaporanDoc(data) {
   const narasiBersih = parseNarasiFromAI(narasiRaw);
   body.replaceText('\\{\\{NARASI_KEGIATAN\\}\\}', narasiBersih);
 
-  // 5. Simpan dan tutup
+  // 5. Isi daftar lampiran
+  const searchResult = body.findText('\\{\\{DAFTAR_LAMPIRAN\\}\\}');
+  if (searchResult) {
+    const el      = searchResult.getElement().getParent();
+    const elIndex = body.getChildIndex(el);
+    el.removeFromParent();
+
+    // Urutkan entries berdasarkan tanggal kegiatan
+    const sortedEntries = [...entries].sort((a, b) => new Date(a.t) - new Date(b.t));
+
+    // Ambil daftar kegiatan formal dari tabel AI
+    const kegiatanList = tabelData.flatMap(m => m.kegiatan);
+
+    let insertIndex = elIndex;
+
+    sortedEntries.forEach((entry, idx) => {
+      const judulKegiatan = kegiatanList[idx] || entry.k;
+
+      // Judul lampiran
+      const judulPara = body.insertParagraph(insertIndex, (idx + 1) + '. Barbuk ' + judulKegiatan);
+      judulPara.setBold(true);
+      insertIndex++;
+
+      // Kumpulkan URL file dari entry ini
+      const fileUrls = (entry.f || []).filter(u => u && u.startsWith('http'));
+
+      if (fileUrls.length > 0) {
+        // Sisipkan dua foto per baris
+        for (let i = 0; i < fileUrls.length; i += 2) {
+          const fotoPara = body.insertParagraph(insertIndex, '');
+          fotoPara.setAlignment(DocumentApp.HorizontalAlignment.LEFT);
+          insertIndex++;
+
+          [fileUrls[i], fileUrls[i + 1]].forEach(url => {
+          if (!url) return;
+          try {
+            const fileId = extractFileId(url);
+            if (fileId) {
+              // Gunakan URL khusus untuk mengambil konten file secara langsung
+              const bytes = UrlFetchApp.fetch(`https://lh3.googleusercontent.com/d/${fileId}`, {
+                headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+                muteHttpExceptions: true
+              }).getBlob();
+              
+              if (bytes.getContentType().indexOf('image') !== -1) {
+                insertResizedImage(fotoPara, bytes);
+                fotoPara.editAsText().appendText('   ');
+              } else {
+                Logger.log('File ID ' + fileId + ' bukan gambar atau tidak bisa diakses.');
+              }
+            }
+          } catch (err) {
+            Logger.log('Gagal sisipkan foto ID ' + fileId + ': ' + err.message);
+          }
+        });
+        }
+      } else {
+        const noPara = body.insertParagraph(insertIndex, '(tidak ada lampiran foto)');
+        noPara.setItalic(true);
+        insertIndex++;
+      }
+
+      // Baris kosong antar kegiatan
+      body.insertParagraph(insertIndex, '');
+      insertIndex++;
+    });
+  }
+
+  // 6. Simpan dan tutup
   doc.saveAndClose();
 
   return { url: newFile.getUrl(), id: newFile.getId() };
+}
+
+// ── HELPER: RESIZE FOTO PROPORSIONAL ─────────────────────────────
+function insertResizedImage(paragraph, blob) {
+  const image          = paragraph.appendInlineImage(blob);
+  const originalWidth  = image.getWidth();
+  const originalHeight = image.getHeight();
+  const maxWidth       = 200;
+  const maxHeight      = 200;
+  const ratio          = Math.min(maxWidth / originalWidth, maxHeight / originalHeight);
+  image.setWidth(Math.round(originalWidth  * ratio));
+  image.setHeight(Math.round(originalHeight * ratio));
+  return image;
+}
+
+// ── HELPER: EKSTRAK FILE ID DARI URL DRIVE ────────────────────────
+function extractFileId(url) {
+  if (!url) return null;
+  
+  // Mencari pola ID Drive di dalam URL atau rumus Hyperlink
+  // Mencari karakter alfanumerik panjang setelah /d/ atau id=
+  const regex = /(?:id=|\/d\/|")([a-zA-Z0-9_-]{25,})/;
+  const match = url.match(regex);
+  
+  return (match && match[1]) ? match[1] : null;
+}
+
+// ── HELPER: REPLACE TEXT YANG ANDAL ──────────────────────────────
+function replaceAllText(body, placeholder, value) {
+  let found = body.findText(placeholder);
+  while (found) {
+    found.getElement().asText().replaceText(placeholder, value);
+    found = body.findText(placeholder);
+  }
 }
 
 // ── HELPER: ISI BARIS TABEL ───────────────────────────────────────
@@ -259,50 +362,54 @@ function saveEntryToSheet(entry, fileUrls = []) {
     (entry.kat || []).join(', '),
   ];
 
-  // File 1, 2, 3 di kolom terpisah sebagai hyperlink
+  // Langsung masukkan URL mentah ke kolom file (G sampai K)
   for (let i = 0; i < 5; i++) {
-    row.push(fileUrls[i] || '');
+    row.push(fileUrls[i] || ''); 
   }
 
   row.push(entry.ts || new Date().toISOString());
+
+  // Sekali klik, semua data (termasuk link) langsung masuk ke sheet
   sheet.appendRow(row);
 
   const lastRow = sheet.getLastRow();
-
-  // Buat hyperlink untuk tiap kolom file
-  for (let i = 0; i < 5; i++) {
-    if (fileUrls[i]) {
-      const fileName = entry.f && entry.f[i] ? entry.f[i] : 'File ' + (i + 1);
-      const kolom    = 7 + i;
-      const cell     = sheet.getRange(lastRow, kolom);
-      cell.setFormula(`=HYPERLINK("${fileUrls[i]}","${fileName}")`);
-    }
-  }
-
   if (lastRow % 2 === 0) {
-    sheet.getRange(lastRow, 1, 1, row.length).setBackground('#F7F6F2');
+    sheet.getRange(lastRow, 1, 1, 12).setBackground('#F7F6F2');
   }
 }
 
 function getEntries(month, year) {
   const sheet = getSheet();
-  const data  = sheet.getDataRange().getValues();
-  if (data.length <= 1) return [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+
+  // Ambil semua kolom (1 sampai 12 termasuk Timestamp)
+  const data = sheet.getRange(1, 1, lastRow, 12).getValues();
 
   const results = [];
   for (let i = 1; i < data.length; i++) {
-    const row  = data[i];
+    const row = data[i];
     const date = new Date(row[1]);
-    if (!isNaN(date) && date.getMonth() === month && date.getFullYear() === year) {
+    // Tambahkan ini di dalam loop for sebelum results.push
+    Logger.log("ID: " + row[0] + " | Periode: " + row[2]);
+
+    if (!isNaN(date.getTime()) && date.getMonth() === month && date.getFullYear() === year) {
+      // Ambil URL langsung dari kolom G sampai K (index 6 sampai 10)
+      const fileUrls = [row[6], row[7], row[8], row[9], row[10]].filter(url => {
+        return url && String(url).startsWith('http');
+      });
+
       results.push({
         id:  row[0],
         t:   row[1],
         per: row[2],
         k:   row[3],
         d:   row[4],
-        kat: row[5] ? row[5].split(', ') : [],
-        f:   row[6] ? row[6].split(', ') : [],
-        ts:  row[7]
+        // Jika kolom kategori kosong, kirim array kosong [], bukan null
+        kat: row[5] ? row[5].split(', ') : [], 
+        // Jika kolom file kosong, kirim array kosong []
+        f:   [row[6], row[7], row[8], row[9], row[10]].filter(url => url && url !== ""),
+        ts:  row[11]
       });
     }
   }
@@ -343,4 +450,45 @@ function setup() {
   Logger.log('Sheet: ' + sheet.getName());
   Logger.log('Drive Folder lampiran: ' + folder.getUrl());
   Logger.log('Drive Folder output laporan: ' + outFolder.getUrl());
+}
+
+function testGenerateDoc() {
+  // Simulasi data yang biasanya ditarik dari Spreadsheet
+  // Perhatikan format 'f' (file) menggunakan rumus HYPERLINK seperti di Sheet Anda
+  const simulasiEntries = [
+    {
+      id: "TEST-001",
+      t: "2026-04-01",
+      k: "Uji Coba Sistem Logbook",
+      d: "Melakukan pengetesan fitur upload foto",
+      kat: ["Teknis"],
+      // Simulasi 5 kolom file, beberapa pakai rumus HYPERLINK, beberapa link biasa
+      f: [
+        'https://drive.google.com/file/d/1KlhBeGrut41TKRrftGUAc5YQiiZY-ggZ/view?usp=drivesdk',
+        '', // Link biasa
+        '', // Kosong
+        '', // Kosong
+        ''  // Kosong
+      ]
+    }
+  ];
+
+  const data = {
+    bulanTahun: 'April 2026',
+    tanggalAkhir: '30 April 2026',
+    nama: 'Ahmad Fikri',
+    jabatan: 'Pengembang Teknologi Pembelajaran',
+    month: 3, // April (0-indexed)
+    year: 2026,
+    entries: simulasiEntries,
+    narasiRaw: '[TABEL]\nMinggu I April:\n- Uji coba sistem logbook\n[/TABEL]\n[NARASI]\nKegiatan pada minggu pertama difokuskan pada pengujian fitur sinkronisasi foto dan dokumen.\n[/NARASI]'
+  };
+  
+  Logger.log('Memulai test generate doc dengan lampiran...');
+  try {
+    const result = generateLaporanDoc(data);
+    Logger.log('✅ Berhasil! URL dokumen: ' + result.url);
+  } catch (e) {
+    Logger.log('❌ Gagal: ' + e.message);
+  }
 }
