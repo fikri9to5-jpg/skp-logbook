@@ -820,8 +820,8 @@ function toast(msg, dur=2200) {
 }
 function fmtD(s) { const d = new Date(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
 function getDisplayFileName(fileValue, idx = 0) {
-  if (!fileValue) return `File ${idx + 1}`;
-  if (typeof fileValue !== 'string') return `File ${idx + 1}`;
+  if (!fileValue) return `Lampiran ${idx + 1}`;
+  if (typeof fileValue !== 'string') return `Lampiran ${idx + 1}`;
 
   if (!/^https?:\/\//i.test(fileValue)) return fileValue;
 
@@ -831,21 +831,27 @@ function getDisplayFileName(fileValue, idx = 0) {
     const cleanedName = decodeURIComponent(rawName).trim();
 
     if (!cleanedName || cleanedName === 'view' || cleanedName === 'open') {
-      return `File ${idx + 1}`;
+      return `Lampiran ${idx + 1}`;
     }
 
     return cleanedName;
   } catch (_) {
-    return `File ${idx + 1}`;
+    return `Lampiran ${idx + 1}`;
   }
+}
+
+function sanitizeFileLabel(label, fallbackUrl, idx = 0) {
+  if (!label || typeof label !== 'string') return getDisplayFileName(fallbackUrl, idx);
+  if (/^https?:\/\//i.test(label)) return getDisplayFileName(fallbackUrl || label, idx);
+  return label;
 }
 
 function getEntryFileLabels(entry) {
   if (Array.isArray(entry.fm) && entry.fm.length) {
-    return entry.fm.map((file, idx) => file?.name || getDisplayFileName(file?.url, idx));
+    return entry.fm.map((file, idx) => sanitizeFileLabel(file?.name, file?.url, idx));
   }
 
-  return (entry.f || []).map((fileValue, idx) => getDisplayFileName(fileValue, idx));
+  return (entry.f || []).map((fileValue, idx) => sanitizeFileLabel(fileValue, fileValue, idx));
 }
 
 /* ── NAV ── */
