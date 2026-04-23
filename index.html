@@ -101,19 +101,18 @@
     padding: 18px 20px 16px;
     display: flex; justify-content: space-between; align-items: center;
     position: sticky; top: 14px; z-index: 50;
-    border-radius: 26px;
+    border-radius: 15px;
     box-shadow: var(--shadow), var(--glow);
     margin-bottom: 12px;
   }
   .topbar-title {
-    font-size: 16px;
+    font-size: 1.2em;
     font-weight: 700;
-    letter-spacing: .01em;
+    letter-spacing: .07em;
     line-height: 1.15;
     color: #ffffff;
     text-shadow: 0 0 10px rgb(40 37 173 / 29%), 0 0 20px #07111f;
   }
-  .topbar-sub   { font-size: 9px; color: #ffffff; margin-top: 6px; letter-spacing: .08em; }
 
   .section { display: none; padding: 20px 2px 0; }
   .section.active { display: block; }
@@ -416,19 +415,14 @@
       max-width: var(--content-w);
       margin: 0 auto 28px;
       padding: 28px 34px;
-      border-radius: 30px;
+      border-radius: 20px;
       box-shadow: 0 26px 55px rgba(5, 10, 20, .22), 0 0 0 1px rgba(255,255,255,.26) inset;
     }
     .topbar-title {
-      font-size: 30px;
+      font-size: 2.3em;
       line-height: 1.08;
       color: #ffffff;
       text-shadow: 0 0 10px rgb(40 37 173 / 29%), 0 0 20px #07111f;
-    }
-    .topbar-sub {
-      font-size: 12px;
-      margin-top: 8px;
-      color: #ffffff;
     }
     .topbar .badge {
       background: rgba(17, 26, 43, 0.08);
@@ -543,7 +537,6 @@
   <div class="topbar">
     <div>
       <div class="topbar-title">📂 SKP Logbook</div>
-      <div class="topbar-sub">monthly report assistant</div>
     </div>
     <span class="badge" id="badge">0 entri</span>
   </div>
