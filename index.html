@@ -819,6 +819,34 @@ function toast(msg, dur=2200) {
   setTimeout(() => el.classList.remove('show'), dur);
 }
 function fmtD(s) { const d = new Date(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+function getDisplayFileName(fileValue, idx = 0) {
+  if (!fileValue) return `File ${idx + 1}`;
+  if (typeof fileValue !== 'string') return `File ${idx + 1}`;
+
+  if (!/^https?:\/\//i.test(fileValue)) return fileValue;
+
+  try {
+    const url = new URL(fileValue);
+    const rawName = url.searchParams.get('name') || url.pathname.split('/').pop() || '';
+    const cleanedName = decodeURIComponent(rawName).trim();
+
+    if (!cleanedName || cleanedName === 'view' || cleanedName === 'open') {
+      return `File ${idx + 1}`;
+    }
+
+    return cleanedName;
+  } catch (_) {
+    return `File ${idx + 1}`;
+  }
+}
+
+function getEntryFileLabels(entry) {
+  if (Array.isArray(entry.fm) && entry.fm.length) {
+    return entry.fm.map((file, idx) => file?.name || getDisplayFileName(file?.url, idx));
+  }
+
+  return (entry.f || []).map((fileValue, idx) => getDisplayFileName(fileValue, idx));
+}
 
 /* ── NAV ── */
 function go(tab, btn) {
@@ -969,7 +997,10 @@ function renderH() {
     list.innerHTML = `<div class="empty"><div class="empty-icon">📭</div>Belum ada entri untuk bulan ini.<br>Tambahkan via tab Input.</div>`;
     return;
   }
-  list.innerHTML = fl.sort((a,b) => a.t.localeCompare(b.t)).map(e => `
+  list.innerHTML = fl.sort((a,b) => a.t.localeCompare(b.t)).map(e => {
+    const fileLabels = getEntryFileLabels(e);
+
+    return `
     <div class="log-item">
       <div class="log-top">
         <div class="log-kegiatan">${e.k}</div>
@@ -979,9 +1010,10 @@ function renderH() {
       ${e.d ? `<div class="log-detail">${e.d}</div>` : ''}
       <div class="tags">
         ${(e.kat || []).map(k => `<span class="tag tag-blue">${k}</span>`).join('')}
-        ${(e.f || []).map(f => `<span class="tag tag-amber">📎 ${f}</span>`).join('')}
+        ${fileLabels.map(name => `<span class="tag tag-amber">📎 ${name}</span>`).join('')}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function delE(id) {
   if (!confirm('Hapus entri ini?')) return;
