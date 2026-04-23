@@ -250,8 +250,15 @@
   }
   .file-zone:hover { border-color: var(--text2); background: rgba(230, 237, 255, 0.08); }
   .file-icon { font-size: 22px; margin-bottom: 6px; }
-  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .tag { font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,.08); }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; align-items: flex-start; }
+  .tag {
+    font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,.08);
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.45;
+  }
   .tag-blue   { background: var(--blue-bg);  color: var(--blue-txt); }
   .tag-amber  { background: var(--amber-bg); color: var(--amber-txt); }
   .tag-green  { background: var(--green-bg); color: var(--green-txt); }
