@@ -493,12 +493,12 @@
     }
     .preview-modal {
       padding: 12px;
-      align-items: flex-end;
+      align-items: center;
     }
     .preview-card {
       width: 100%;
       max-height: 82vh;
-      border-radius: 24px 24px 18px 18px;
+      border-radius: 24px;
     }
     .preview-head {
       align-items: flex-start;
@@ -679,7 +679,7 @@
   <!-- TOP BAR -->
   <div class="topbar">
     <div>
-      <div class="topbar-title">📂 SKP Logbook</div>
+      <div class="topbar-title">SKP Logbook 📂</div>
     </div>
     <span class="badge" id="badge">0 entri</span>
   </div>
@@ -874,7 +874,7 @@
       </div>
       <div class="field">
         <label>Gemini API Key</label>
-        <input type="password" id="api-key" placeholder="sk-ant-..." />
+        <input type="password" id="api-key"/>
         <div style="font-size:11px; color:var(--text3); margin-top:5px;">
           Tersimpan hanya di perangkat ini (localStorage). Tidak dikirim ke server lain.
         </div>
@@ -1022,6 +1022,11 @@ function getDriveFileId(url) {
   const match = url.match(/(?:\/d\/|id=)([a-zA-Z0-9_-]{20,})/);
   return match ? match[1] : '';
 }
+const previewGesture = {
+  active: false,
+  startY: 0,
+  deltaY: 0
+};
 function getPreviewSource(url, label) {
   const fileId = getDriveFileId(url);
   const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(label || '');
@@ -1056,6 +1061,48 @@ function closePreview(event) {
   document.getElementById('preview-modal').classList.remove('show');
   document.getElementById('preview-body').innerHTML = '';
   document.body.style.overflow = '';
+  resetPreviewGesture();
+}
+function getPreviewCard() {
+  return document.querySelector('#preview-modal .preview-card');
+}
+function resetPreviewGesture() {
+  previewGesture.active = false;
+  previewGesture.startY = 0;
+  previewGesture.deltaY = 0;
+  const card = getPreviewCard();
+  if (!card) return;
+  card.style.transform = '';
+  card.style.transition = '';
+}
+function onPreviewTouchStart(event) {
+  if (window.innerWidth > 767) return;
+  const card = getPreviewCard();
+  if (!card) return;
+  previewGesture.active = true;
+  previewGesture.startY = event.touches[0].clientY;
+  previewGesture.deltaY = 0;
+  card.style.transition = 'none';
+}
+function onPreviewTouchMove(event) {
+  if (!previewGesture.active || window.innerWidth > 767) return;
+  const card = getPreviewCard();
+  if (!card) return;
+  const currentY = event.touches[0].clientY;
+  previewGesture.deltaY = Math.max(0, currentY - previewGesture.startY);
+  card.style.transform = `translateY(${previewGesture.deltaY}px)`;
+}
+function onPreviewTouchEnd() {
+  if (!previewGesture.active || window.innerWidth > 767) return;
+  const card = getPreviewCard();
+  if (!card) return;
+  card.style.transition = 'transform .2s ease';
+  if (previewGesture.deltaY > 120) {
+    closePreview();
+    return;
+  }
+  card.style.transform = 'translateY(0)';
+  resetPreviewGesture();
 }
 
 /* ── NAV ── */
@@ -1580,6 +1627,12 @@ async function initApp() {
 document.getElementById('i-tgl').value = new Date().toISOString().split('T')[0];
 upBadge();
 initApp();
+const previewCardEl = getPreviewCard();
+if (previewCardEl) {
+  previewCardEl.addEventListener('touchstart', onPreviewTouchStart, { passive: true });
+  previewCardEl.addEventListener('touchmove', onPreviewTouchMove, { passive: true });
+  previewCardEl.addEventListener('touchend', onPreviewTouchEnd);
+}
 </script>
 </body>
 </html>
