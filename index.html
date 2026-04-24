@@ -250,11 +250,29 @@
   }
   .file-zone:hover { border-color: var(--text2); background: rgba(230, 237, 255, 0.08); }
   .file-icon { font-size: 22px; margin-bottom: 6px; }
-  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .tag { font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,.08); }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; align-items: flex-start; }
+  .tag {
+    font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,.08);
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.45;
+  }
   .tag-blue   { background: var(--blue-bg);  color: var(--blue-txt); }
   .tag-amber  { background: var(--amber-bg); color: var(--amber-txt); }
   .tag-green  { background: var(--green-bg); color: var(--green-txt); }
+  .tag-file {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .tag-file:hover {
+    border-color: rgba(255, 223, 173, 0.42);
+    background: rgba(255, 212, 128, 0.24);
+  }
 
   /* ── LOG ITEMS ── */
   .log-item {
@@ -337,6 +355,101 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  /* ── PREVIEW MODAL ── */
+  .preview-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 240;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(3, 8, 18, 0.72);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .preview-modal.show { display: flex; }
+  .preview-card {
+    width: min(920px, 100%);
+    max-height: min(88vh, 880px);
+    background: rgba(10, 18, 33, 0.94);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: 0 30px 70px rgba(1, 8, 18, 0.45);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(226, 235, 255, 0.10);
+    background: rgba(233, 241, 255, 0.05);
+  }
+  .preview-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.45;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .preview-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .preview-link {
+    font-size: 12px;
+    color: var(--blue-txt);
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(123, 178, 255, 0.24);
+    background: rgba(123, 178, 255, 0.12);
+  }
+  .preview-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid rgba(226, 235, 255, 0.16);
+    background: rgba(226, 235, 255, 0.08);
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .preview-body {
+    min-height: 320px;
+    height: min(72vh, 720px);
+    background: rgba(4, 9, 18, 0.78);
+  }
+  .preview-frame,
+  .preview-image {
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .preview-image {
+    object-fit: contain;
+    display: block;
+    background: rgba(4, 9, 18, 0.78);
+  }
+  .preview-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    color: var(--text2);
+    line-height: 1.7;
+    font-size: 13px;
+  }
+
   /* ── SYNC STATUS ── */
   .sync-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text3); margin-top: 8px; }
   .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
@@ -369,6 +482,36 @@
   .divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
 
   @media (max-width: 767px) {
+    .tags {
+      gap: 10px;
+    }
+    .tag {
+      width: 100%;
+      border-radius: 18px;
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+    .preview-modal {
+      padding: 12px;
+      align-items: flex-end;
+    }
+    .preview-card {
+      width: 100%;
+      max-height: 82vh;
+      border-radius: 24px 24px 18px 18px;
+    }
+    .preview-head {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .preview-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .preview-body {
+      height: 62vh;
+      min-height: 280px;
+    }
     body::before {
       width: 13rem;
       height: 13rem;
@@ -794,6 +937,19 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="preview-modal" id="preview-modal" onclick="closePreview(event)">
+  <div class="preview-card" onclick="event.stopPropagation()">
+    <div class="preview-head">
+      <div class="preview-title" id="preview-title">Preview lampiran</div>
+      <div class="preview-actions">
+        <a id="preview-link" class="preview-link" href="#" target="_blank" rel="noopener noreferrer">Buka di tab baru</a>
+        <button class="preview-close" type="button" onclick="closePreview()">×</button>
+      </div>
+    </div>
+    <div class="preview-body" id="preview-body"></div>
+  </div>
+</div>
+
 <script>
 /* ── STATE ── */
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -819,6 +975,14 @@ function toast(msg, dur=2200) {
   setTimeout(() => el.classList.remove('show'), dur);
 }
 function fmtD(s) { const d = new Date(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+function escAttr(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 function getDisplayFileName(fileValue, idx = 0) {
   if (!fileValue) return `Lampiran ${idx + 1}`;
   if (typeof fileValue !== 'string') return `Lampiran ${idx + 1}`;
@@ -852,6 +1016,46 @@ function getEntryFileLabels(entry) {
   }
 
   return (entry.f || []).map((fileValue, idx) => sanitizeFileLabel(fileValue, fileValue, idx));
+}
+function getDriveFileId(url) {
+  if (!url || typeof url !== 'string') return '';
+  const match = url.match(/(?:\/d\/|id=)([a-zA-Z0-9_-]{20,})/);
+  return match ? match[1] : '';
+}
+function getPreviewSource(url, label) {
+  const fileId = getDriveFileId(url);
+  const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(label || '');
+
+  if (!fileId) return { type: 'none', src: '' };
+  if (isImage) return { type: 'image', src: `https://lh3.googleusercontent.com/d/${fileId}=w1800` };
+  return { type: 'frame', src: `https://drive.google.com/file/d/${fileId}/preview` };
+}
+function openPreview(url, label) {
+  const modal = document.getElementById('preview-modal');
+  const title = document.getElementById('preview-title');
+  const body = document.getElementById('preview-body');
+  const link = document.getElementById('preview-link');
+  const preview = getPreviewSource(url, label);
+
+  title.textContent = label || 'Preview lampiran';
+  link.href = url || '#';
+
+  if (!url || preview.type === 'none') {
+    body.innerHTML = `<div class="preview-empty">Preview belum tersedia untuk lampiran ini.<br>Gunakan tombol "Buka di tab baru" untuk melihat file.</div>`;
+  } else if (preview.type === 'image') {
+    body.innerHTML = `<img class="preview-image" src="${escAttr(preview.src)}" alt="${escAttr(label || 'Preview lampiran')}" />`;
+  } else {
+    body.innerHTML = `<iframe class="preview-frame" src="${escAttr(preview.src)}" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+  }
+
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closePreview(event) {
+  if (event && event.target && event.target !== event.currentTarget) return;
+  document.getElementById('preview-modal').classList.remove('show');
+  document.getElementById('preview-body').innerHTML = '';
+  document.body.style.overflow = '';
 }
 
 /* ── NAV ── */
@@ -1016,7 +1220,11 @@ function renderH() {
       ${e.d ? `<div class="log-detail">${e.d}</div>` : ''}
       <div class="tags">
         ${(e.kat || []).map(k => `<span class="tag tag-blue">${k}</span>`).join('')}
-        ${fileLabels.map(name => `<span class="tag tag-amber">📎 ${name}</span>`).join('')}
+        ${fileLabels.map((name, idx) => {
+          const url = escAttr((e.f || [])[idx] || '');
+          const label = escAttr(name);
+          return `<button type="button" class="tag tag-amber tag-file" onclick="openPreview(decodeURIComponent('${encodeURIComponent((e.f || [])[idx] || '')}'), decodeURIComponent('${encodeURIComponent(name)}'))">📎 ${label}</button>`;
+        }).join('')}
       </div>
     </div>`;
   }).join('');
