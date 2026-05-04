@@ -1077,8 +1077,11 @@ function openPreview(url, label) {
   const preview = getPreviewSource(url, label);
 
   title.textContent = label || 'Preview lampiran';
-  link.href = url || '#';
-
+  const externalUrl = (typeof url === 'string' && /^https?:\/\//i.test(url)) ? url : '#';
+  link.href = externalUrl;
+  link.style.pointerEvents = externalUrl === '#' ? 'none' : 'auto';
+  link.style.opacity = externalUrl === '#' ? '0.5' : '1';
+  
   if (!url || preview.type === 'none') {
     body.innerHTML = `<div class="preview-empty">Preview belum tersedia untuk lampiran ini.<br>Gunakan tombol "Buka di tab baru" untuk melihat file.</div>`;
   } else if (preview.type === 'image') {
