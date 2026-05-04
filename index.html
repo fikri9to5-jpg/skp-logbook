@@ -971,12 +971,31 @@ async function syncEntriesForPeriod(month, year) {
   const json = await res.json();
   if (!(json.status === 'ok' && Array.isArray(json.data))) return [];
 
-  const localIds = new Set(entries.map(e => String(e.id)));
-  const newFromSheets = json.data.filter(e => !localIds.has(String(e.id)));
-  if (newFromSheets.length > 0) {
-    entries = [...newFromSheets, ...entries];
-    save();
-  }
+  const byId = new Map(entries.map(e => [String(e.id), e]));
+  let changed = false;
+
+  json.data.forEach(serverEntry => {
+    const id = String(serverEntry.id);
+    const localEntry = byId.get(id);
+
+    if (!localEntry) {
+      entries.unshift(serverEntry);
+      byId.set(id, serverEntry);
+      changed = true;
+      return;
+    }
+
+    const localHasHttp = (localEntry.f || []).some(v => typeof v === 'string' && /^https?:\/\//i.test(v));
+    const serverHasHttp = (serverEntry.f || []).some(v => typeof v === 'string' && /^https?:\/\//i.test(v));
+
+    // Jika lokal masih berisi nama file mentah, timpa dengan versi server yang berisi URL Drive
+    if (!localHasHttp && serverHasHttp) {
+      Object.assign(localEntry, serverEntry);
+      changed = true;
+    }
+  });
+
+  if (changed) save();
   return json.data;
 }  
 function upBadge() {
