@@ -964,6 +964,21 @@ let aFiles = [];
 
 /* ── HELPERS ── */
 function save() { localStorage.setItem('lb_e', JSON.stringify(entries)); upBadge(); }
+
+async function syncEntriesForPeriod(month, year) {
+  if (!gasUrl) return [];
+  const res = await fetch(`${gasUrl}?action=getEntries&month=${month}&year=${year}`);
+  const json = await res.json();
+  if (!(json.status === 'ok' && Array.isArray(json.data))) return [];
+
+  const localIds = new Set(entries.map(e => String(e.id)));
+  const newFromSheets = json.data.filter(e => !localIds.has(String(e.id)));
+  if (newFromSheets.length > 0) {
+    entries = [...newFromSheets, ...entries];
+    save();
+  }
+  return json.data;
+}  
 function upBadge() {
   const n = new Date();
   const c = entries.filter(e => { const d = new Date(e.t); return d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear(); }).length;
@@ -1341,6 +1356,13 @@ async function generate() {
   const jbt  = document.getElementById('g-jbt').value  || '';
   const cat  = document.getElementById('g-cat').value  || '';
 
+  // Pastikan periode yang dipilih ikut disinkronkan dari Sheets (bukan hanya cache bulan aktif)
+  try {
+    await syncEntriesForPeriod(m, y);
+  } catch (err) {
+    console.log('Gagal sync periode generate:', err.message);
+  }
+  
   const fl = entries.filter(e => {
     const d = new Date(e.t);
     return d.getMonth() === m && d.getFullYear() === y;
