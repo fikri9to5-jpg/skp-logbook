@@ -1602,8 +1602,19 @@ async function initApp() {
     // Tampilkan indikator loading
     document.getElementById('badge').textContent = 'Memuat...';
 
-    const res = await fetch(`${gasUrl}?action=getEntries&month=${m}&year=${y}`);
-    const json = await res.json();
+    const fetchEntriesFor = async (month, year) => {
+      const res = await fetch(`${gasUrl}?action=getEntries&month=${month}&year=${year}`);
+      return res.json();
+    };
+
+    let json = await fetchEntriesFor(m, y);
+
+    // Fallback: jika bulan berjalan kosong, coba bulan sebelumnya
+    // Kasus umum di awal bulan saat seluruh data masih tersimpan di bulan lalu
+    if (json.status === 'ok' && (!json.data || json.data.length === 0)) {
+      const prev = new Date(y, m - 1, 1);
+      json = await fetchEntriesFor(prev.getMonth(), prev.getFullYear());
+    }
 
     if (json.status === 'ok' && json.data.length > 0) {
       // Gabungkan data Sheets dengan localStorage, hindari duplikat berdasarkan ID
