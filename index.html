@@ -1332,17 +1332,51 @@ function delR(i) { refs.splice(i,1); localStorage.setItem('lb_r', JSON.stringify
 function saveSty() { styleNotes = document.getElementById('style-txt').value; localStorage.setItem('lb_s', styleNotes); toast('✓ Instruksi tersimpan!'); }
 
 /* ── GENERATE ── */
+async function refreshGenInfo() {
+  const m = parseInt(document.getElementById('g-bln').value, 10);
+  const y = parseInt(document.getElementById('g-thn').value, 10);
+  const info = document.getElementById('g-info');
+
+  info.innerHTML = '<div class="alert alert-info" style="margin-bottom:12px;">Memuat entri periode terpilih...</div>';
+
+  try {
+    await syncEntriesForPeriod(m, y);
+  } catch (err) {
+    console.log('Gagal sync info generate:', err.message);
+  }
+
+  const cnt = entries.filter(e => {
+    const d = new Date(e.t);
+    return d.getMonth() === m && d.getFullYear() === y;
+  }).length;
+
+  info.innerHTML = cnt
+    ? `<div class="alert alert-info" style="margin-bottom:12px;">📋 ${cnt} entri ditemukan untuk ${MONTHS[m]} ${y} — siap di-generate.</div>`
+    : `<div class="alert alert-warning" style="margin-bottom:12px;">Belum ada entri untuk ${MONTHS[m]} ${y}.</div>`;
+}
+
 function initGen() {
   const ms = document.getElementById('g-bln'), ys = document.getElementById('g-thn');
-  ms.innerHTML = MONTHS.map((m,i) => `<option value="${i}"${i===new Date().getMonth()?' selected':''}>${m}</option>`).join('');
-  ys.innerHTML = [2024,2025,2026].map(y => `<option${y===new Date().getFullYear()?' selected':''}>${y}</option>`).join('');
-  const m = new Date().getMonth(), y = new Date().getFullYear();
-  const cnt = entries.filter(e => { const d = new Date(e.t); return d.getMonth()===m && d.getFullYear()===y; }).length;
+  const now = new Date();
+
+  if (!ms.dataset.inited) {
+    ms.innerHTML = MONTHS.map((m,i) => `<option value="${i}">${m}</option>`).join('');
+    ms.value = String(now.getMonth());
+    ms.addEventListener('change', refreshGenInfo);
+    ms.dataset.inited = '1';
+  }
+
+  if (!ys.dataset.inited) {
+    ys.innerHTML = [2024,2025,2026].map(y => `<option value="${y}">${y}</option>`).join('');
+    ys.value = String(now.getFullYear());
+    ys.addEventListener('change', refreshGenInfo);
+    ys.dataset.inited = '1';
+  }
+
   document.getElementById('g-nama').value = profile.nama || '';
   document.getElementById('g-jbt').value  = profile.jbt  || '';
-  document.getElementById('g-info').innerHTML = cnt
-    ? `<div class="alert alert-info" style="margin-bottom:12px;">📋 ${cnt} entri ditemukan — siap di-generate.</div>`
-    : `<div class="alert alert-warning" style="margin-bottom:12px;">Belum ada entri untuk bulan ini.</div>`;
+
+  refreshGenInfo();
 }
 
 async function generate() {
