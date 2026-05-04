@@ -1143,12 +1143,21 @@ function onPreviewTouchEnd() {
 }
 
 /* ── NAV ── */
+async function syncAndRenderHistory() {
+  try {
+    await syncEntriesForPeriod(vM, vY);
+  } catch (err) {
+    console.log('Gagal sync riwayat:', err.message);
+  }
+  renderH();
+}
+
 function go(tab, btn) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   btn.classList.add('active');
-  if (tab === 'riwayat') renderH();
+  if (tab === 'riwayat') syncAndRenderHistory();
   if (tab === 'gen')     initGen();
   if (tab === 'ref')     { document.getElementById('style-txt').value = styleNotes; renderRefs(); }
   if (tab === 'set')     loadSettings();
