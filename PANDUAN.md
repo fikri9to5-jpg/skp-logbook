@@ -97,20 +97,30 @@ Ini untuk menyimpan data ke Google Sheets dan file ke Google Drive.
 
 ---
 
-## BAGIAN 3 — Setup API Key Anthropic
+## BAGIAN 3 — Setup API Key Gemini (PENTING & AMAN)
 
-API Key digunakan untuk fitur Generate Laporan dengan AI.
+API Key digunakan untuk fitur Generate Laporan dengan AI. Demi keamanan, API Key sekarang disimpan secara aman di Google Apps Script sisi server (bukan di browser Anda).
 
-1. Buka https://console.anthropic.com
-2. Login / daftar
-3. Klik **API Keys → + Create Key**
-4. Copy key yang muncul (format: `sk-ant-...`)
-5. Buka aplikasi → tab **Setelan** → paste ke kolom **"Anthropic API Key"**
-6. Klik **Simpan pengaturan**
+### Langkah-langkah:
 
-> ⚠️ **Catatan biaya:** API Anthropic berbayar per penggunaan.
-> Generate 1 laporan ≈ $0.01–0.03 (sangat murah).
-> Daftar di console.anthropic.com untuk lihat tarif terbaru.
+1. **Dapatkan API Key Gemini:**
+   - Buka https://aistudio.google.com
+   - Login dengan akun Google Anda
+   - Klik **Get API Key** lalu klik **Create API Key**
+   - Salin (copy) key yang muncul (format: `AIzaSy...`)
+
+2. **Simpan di Google Apps Script (Script Properties):**
+   - Buka proyek **Google Apps Script** Anda (tempat Anda menempelkan `gas.js`)
+   - Di menu sebelah kiri, klik ikon ⚙️ (**Setelan Proyek** / *Project Settings*)
+   - Scroll ke bawah ke bagian **Script Properties** (Properti Script)
+   - Klik **Add script property** (Tambahkan properti script)
+   - Isi kolom sebagai berikut:
+     * **Property**: `GEMINI_API_KEY`
+     * **Value**: *Paste API Key Gemini yang Anda salin tadi*
+   - Klik **Save script properties** (Simpan properti script)
+   - **PENTING**: Jika Anda mengubah Script, deploy ulang sebagai Web App agar perubahan properti ini aktif (Deploy -> Manage Deployments -> Edit -> Deploy versi baru).
+
+> ⚠️ **Catatan biaya:** Gemini API menyediakan kuota gratis (Free Tier) yang cukup untuk kebutuhan personal bulanan Anda.
 
 ---
 
@@ -140,7 +150,8 @@ API Key digunakan untuk fitur Generate Laporan dengan AI.
 - Pastikan "Who has access" diset ke **Anyone**
 
 **Generate laporan error?**
-- Cek API Key sudah benar
+- Cek apakah `GEMINI_API_KEY` sudah terkonfigurasi dengan benar di Script Properties Google Apps Script Anda.
+- Pastikan Anda sudah mendeploy ulang Apps Script (Deploy -> Manage deployments -> Edit -> Deploy versi baru) agar properti baru terbaca.
 - Pastikan ada entri logbook untuk bulan yang dipilih
 
 **Aplikasi tidak muncul di Vercel?**

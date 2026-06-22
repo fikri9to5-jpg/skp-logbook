@@ -37,6 +37,11 @@ function doPost(e) {
     Logger.log('Data diterima: ' + JSON.stringify(data).substring(0, 500));
     const action = e.parameter.action || data.action || '';
 
+    if (action === 'generateAI') {
+      const aiText = callGeminiAPI(data.prompt);
+      return jsonResponse({ status: 'ok', text: aiText });
+    }
+
     if (action === 'addEntryWithFiles') {
       const uploadedFiles = [];
       const fileLinks = [];
@@ -491,4 +496,41 @@ function testGenerateDoc() {
   } catch (e) {
     Logger.log('❌ Gagal: ' + e.message);
   }
+}
+
+// ── HELPER: CALL GEMINI API (SECURE PROXY) ────────────────────────
+function callGeminiAPI(promptText) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY belum dikonfigurasi di Script Properties Google Apps Script.');
+  }
+  
+  const url = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=' + apiKey;
+  const payload = {
+    contents: [{
+      parts: [{ text: promptText }]
+    }]
+  };
+  
+  const response = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  
+  const responseCode = response.getResponseCode();
+  const responseText = response.getContentText();
+  
+  if (responseCode !== 200) {
+    throw new Error('Gemini API Error (' + responseCode + '): ' + responseText);
+  }
+  
+  const resData = JSON.parse(responseText);
+  const aiText = resData.candidates && resData.candidates[0] && resData.candidates[0].content && resData.candidates[0].content.parts && resData.candidates[0].content.parts[0] && resData.candidates[0].content.parts[0].text;
+  if (!aiText) {
+    throw new Error('Gemini API tidak menghasilkan respon teks.');
+  }
+  
+  return aiText;
 }
